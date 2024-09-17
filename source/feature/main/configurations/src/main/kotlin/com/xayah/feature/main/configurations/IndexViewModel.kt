@@ -2,7 +2,6 @@ package com.xayah.feature.main.configurations
 
 import android.content.Context
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.ui.res.stringResource
 import com.xayah.core.data.repository.CloudRepository
 import com.xayah.core.data.repository.MediaRepository
 import com.xayah.core.data.repository.PackageRepository
@@ -192,13 +191,13 @@ class IndexViewModel @Inject constructor(
                                                         packageInfo = PackageInfo(label = "", versionName = "", versionCode = 0L, flags = 0, firstInstallTime = 0L),
                                                         extraInfo = PackageExtraInfo(
                                                             uid = 0,
-                                                            labels = listOf(),
                                                             hasKeystore = false,
                                                             permissions = listOf(),
                                                             ssaid = "",
                                                             blocked = true,
                                                             activated = false,
-                                                            existed = false
+                                                            firstUpdated = true,
+                                                            enabled = true,
                                                         ),
                                                         dataStats = PackageDataStats(),
                                                         dataStates = PackageDataStates(),
@@ -230,7 +229,6 @@ class IndexViewModel @Inject constructor(
                                                             displayBytes = 0,
                                                         ),
                                                         extraInfo = MediaExtraInfo(
-                                                            labels = listOf(),
                                                             blocked = true,
                                                             activated = false,
                                                             existed = false,

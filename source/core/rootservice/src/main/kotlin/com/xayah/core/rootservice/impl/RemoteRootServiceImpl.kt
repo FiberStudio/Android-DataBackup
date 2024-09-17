@@ -5,6 +5,7 @@ import android.app.ActivityManagerHidden
 import android.app.ActivityThread
 import android.app.usage.StorageStatsManager
 import android.content.Context
+import android.content.pm.IPackageManager
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.content.pm.PackageManager.PackageInfoFlags
@@ -13,6 +14,7 @@ import android.content.pm.UserInfo
 import android.os.Build
 import android.os.Parcel
 import android.os.ParcelFileDescriptor
+import android.os.ServiceManager
 import android.os.StatFs
 import android.os.UserHandle
 import android.os.UserHandleHidden
@@ -20,7 +22,7 @@ import android.os.UserManagerHidden
 import android.view.SurfaceControlHidden
 import com.android.server.display.DisplayControl
 import com.topjohnwu.superuser.ShellUtils
-import com.xayah.core.datastore.ConstantUtil.DEFAULT_TIMEOUT
+import com.xayah.core.datastore.ConstantUtil.DEFAULT_IDLE_TIMEOUT
 import com.xayah.core.hiddenapi.castTo
 import com.xayah.core.rootservice.IRemoteRootService
 import com.xayah.core.rootservice.parcelables.PathParcelable
@@ -53,6 +55,7 @@ internal class RemoteRootServiceImpl : IRemoteRootService.Stub() {
     private var systemContext: Context
     private var packageManager: PackageManager
     private var packageManagerHidden: PackageManagerHidden
+    private var packageManagerService: IPackageManager
     private var userManager: UserManagerHidden
     private var activityManager: ActivityManagerHidden
 
@@ -88,6 +91,7 @@ internal class RemoteRootServiceImpl : IRemoteRootService.Stub() {
         systemContext = getSystemContext()
         packageManager = systemContext.packageManager
         packageManagerHidden = packageManager.castTo()
+        packageManagerService = IPackageManager.Stub.asInterface(ServiceManager.getService("package"))
         userManager = getUserManager()
         activityManager = getActivityManager()
     }
@@ -478,7 +482,7 @@ internal class RemoteRootServiceImpl : IRemoteRootService.Stub() {
     }
 
     override fun getScreenOffTimeout(): Int = synchronized(lock) {
-        ShellUtils.fastCmd("settings get system screen_off_timeout").toIntOrNull() ?: DEFAULT_TIMEOUT
+        ShellUtils.fastCmd("settings get system screen_off_timeout").toIntOrNull() ?: DEFAULT_IDLE_TIMEOUT
     }
 
     override fun setScreenOffTimeout(timeout: Int): Unit = synchronized(lock) {
@@ -487,6 +491,14 @@ internal class RemoteRootServiceImpl : IRemoteRootService.Stub() {
 
     override fun forceStopPackageAsUser(packageName: String, userId: Int) = synchronized(lock) {
         activityManager.forceStopPackageAsUser(packageName, userId)
+    }
+
+    override fun setApplicationEnabledSetting(packageName: String, newState: Int, flags: Int, userId: Int, callingPackage: String?) = synchronized(lock) {
+        packageManagerService.setApplicationEnabledSetting(packageName, newState, flags, userId, callingPackage)
+    }
+
+    override fun getApplicationEnabledSetting(packageName: String, userId: Int): Int = synchronized(lock) {
+        packageManagerService.getApplicationEnabledSetting(packageName, userId)
     }
 
     override fun calculateMD5(src: String): String = synchronized(lock) { HashUtil.calculateMD5(src) }

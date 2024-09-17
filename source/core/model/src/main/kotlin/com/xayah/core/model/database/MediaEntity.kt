@@ -4,6 +4,7 @@ import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.xayah.core.model.CompressionType
+import com.xayah.core.model.File
 import com.xayah.core.model.OpType
 import kotlinx.serialization.Serializable
 
@@ -26,7 +27,6 @@ data class MediaInfo(
 
 @Serializable
 data class MediaExtraInfo(
-    var labels: List<String>,
     var blocked: Boolean,
     var activated: Boolean,
     var existed: Boolean,
@@ -64,3 +64,10 @@ data class MediaEntity(
     val enabled: Boolean
         get() = extraInfo.existed && path.isNotEmpty()
 }
+
+fun MediaEntity.asExternalModel() = File(
+    id = id,
+    name = name,
+    path = path,
+    selected = extraInfo.activated
+)

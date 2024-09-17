@@ -13,6 +13,7 @@ import android.os.RemoteException
 import android.os.UserHandle
 import com.google.gson.reflect.TypeToken
 import com.topjohnwu.superuser.ipc.RootService
+import com.xayah.core.datastore.ConstantUtil.DEFAULT_TIMEOUT
 import com.xayah.core.rootservice.IRemoteRootService
 import com.xayah.core.rootservice.impl.RemoteRootServiceImpl
 import com.xayah.core.rootservice.parcelables.PathParcelable
@@ -26,6 +27,8 @@ import com.xayah.core.util.PathUtil
 import com.xayah.core.util.model.ShellResult
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.decodeFromByteArray
 import kotlinx.serialization.encodeToByteArray
@@ -38,6 +41,7 @@ import kotlin.coroutines.suspendCoroutine
 class RemoteRootService(private val context: Context) {
     private var mService: IRemoteRootService? = null
     private var mConnection: ServiceConnection? = null
+    private var mutex = Mutex()
     private var retries = 0
     private val intent by lazy {
         Intent().apply {
@@ -116,7 +120,7 @@ class RemoteRootService(private val context: Context) {
         mService = null
     }
 
-    private suspend fun getService(): IRemoteRootService {
+    private suspend fun getService(): IRemoteRootService = mutex.withLock {
         return tryOnScope(
             block = {
                 withMainContext {
@@ -288,13 +292,19 @@ class RemoteRootService(private val context: Context) {
         runCatching { getService().setDisplayPowerMode(mode) }.onFailure(onFailure)
 
     suspend fun getScreenOffTimeout() =
-        runCatching { getService().getScreenOffTimeout() }.onFailure(onFailure).getOrElse { 0 }
+        runCatching { getService().getScreenOffTimeout() }.onFailure(onFailure).getOrElse { DEFAULT_TIMEOUT }
 
     suspend fun setScreenOffTimeout(timeout: Int) =
         runCatching { getService().setScreenOffTimeout(timeout) }.onFailure(onFailure)
 
     suspend fun forceStopPackageAsUser(packageName: String, userId: Int) =
         runCatching { getService().forceStopPackageAsUser(packageName, userId) }.onFailure(onFailure)
+
+    suspend fun setApplicationEnabledSetting(packageName: String, newState: Int, flags: Int, userId: Int, callingPackage: String?) =
+        runCatching { getService().setApplicationEnabledSetting(packageName, newState, flags, userId, callingPackage) }.onFailure(onFailure)
+
+    suspend fun getApplicationEnabledSetting(packageName: String, userId: Int): Int? =
+        runCatching { getService().getApplicationEnabledSetting(packageName, userId) }.onFailure(onFailure).getOrNull()
 
     suspend fun calculateMD5(src: String): String? =
         runCatching { getService().calculateMD5(src) }.onFailure(onFailure).getOrNull()

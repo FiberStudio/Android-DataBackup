@@ -24,19 +24,21 @@ import com.xayah.feature.main.cloud.add.PageSMBSetup
 import com.xayah.feature.main.cloud.add.PageWebDAVSetup
 import com.xayah.feature.main.configurations.PageConfigurations
 import com.xayah.feature.main.dashboard.PageDashboard
+import com.xayah.feature.main.details.DetailsRoute
 import com.xayah.feature.main.directory.PageDirectory
+import com.xayah.feature.main.list.ListRoute
 import com.xayah.feature.main.medium.backup.detail.PageMediumBackupDetail
 import com.xayah.feature.main.medium.backup.list.PageMediumBackupList
-import com.xayah.feature.main.medium.backup.processing.MediumBackupProcessingGraph
 import com.xayah.feature.main.medium.restore.detail.PageMediumRestoreDetail
 import com.xayah.feature.main.medium.restore.list.PageMediumRestoreList
-import com.xayah.feature.main.medium.restore.processing.MediumRestoreProcessingGraph
 import com.xayah.feature.main.packages.backup.detail.PagePackagesBackupDetail
 import com.xayah.feature.main.packages.backup.list.PagePackagesBackupList
-import com.xayah.feature.main.packages.backup.processing.PackagesBackupProcessingGraph
 import com.xayah.feature.main.packages.restore.detail.PagePackagesRestoreDetail
 import com.xayah.feature.main.packages.restore.list.PagePackagesRestoreList
-import com.xayah.feature.main.packages.restore.processing.PackagesRestoreProcessingGraph
+import com.xayah.feature.main.processing.medium.backup.MediumBackupProcessingGraph
+import com.xayah.feature.main.processing.medium.restore.MediumRestoreProcessingGraph
+import com.xayah.feature.main.processing.packages.backup.PackagesBackupProcessingGraph
+import com.xayah.feature.main.processing.packages.restore.PackagesRestoreProcessingGraph
 import com.xayah.feature.main.restore.PageRestore
 import com.xayah.feature.main.restore.reload.PageReload
 import com.xayah.feature.main.settings.PageSettings
@@ -101,6 +103,12 @@ class MainActivity : AppCompatActivity() {
                         }
                         composable(MainRoutes.PackagesBackupList.route) {
                             PagePackagesBackupList()
+                        }
+                        composable(MainRoutes.List.route) {
+                            ListRoute()
+                        }
+                        composable(MainRoutes.Details.route) {
+                            DetailsRoute()
                         }
                         composable(MainRoutes.PackagesBackupDetail.route) {
                             PagePackagesBackupDetail()

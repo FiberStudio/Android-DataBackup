@@ -1,11 +1,14 @@
 package com.xayah.core.model.database
 
 import android.content.pm.ApplicationInfo
+import androidx.room.ColumnInfo
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.xayah.core.model.App
 import com.xayah.core.model.CompressionType
 import com.xayah.core.model.DataState
+import com.xayah.core.model.DataType
 import com.xayah.core.model.OpType
 import com.xayah.core.model.util.formatSize
 import kotlinx.serialization.Serializable
@@ -31,13 +34,13 @@ data class PackageInfo(
 @Serializable
 data class PackageExtraInfo(
     var uid: Int,
-    var labels: List<String>,
     var hasKeystore: Boolean,
     var permissions: List<PackagePermission>,
     var ssaid: String,
     var blocked: Boolean,
     var activated: Boolean,
-    var existed: Boolean,
+    @ColumnInfo(defaultValue = "1") var firstUpdated: Boolean,
+    @ColumnInfo(defaultValue = "1") var enabled: Boolean,
 )
 
 @Serializable
@@ -50,7 +53,40 @@ data class PackageDataStates(
     var mediaState: DataState = DataState.Selected,
     var permissionState: DataState = DataState.Selected,
     var ssaidState: DataState = DataState.Selected,
-)
+) {
+    companion object {
+        fun DataType.getSelected(states: PackageDataStates) = when (this) {
+            DataType.PACKAGE_APK -> states.apkState == DataState.Selected
+            DataType.PACKAGE_USER -> states.userState == DataState.Selected
+            DataType.PACKAGE_USER_DE -> states.userDeState == DataState.Selected
+            DataType.PACKAGE_DATA -> states.dataState == DataState.Selected
+            DataType.PACKAGE_OBB -> states.obbState == DataState.Selected
+            DataType.PACKAGE_MEDIA -> states.mediaState == DataState.Selected
+            else -> false
+        }
+
+        fun DataType.setSelected(states: PackageDataStates, selected: Boolean): PackageDataStates = when (this) {
+            DataType.PACKAGE_APK -> states.copy(apkState = if (selected) DataState.Selected else DataState.NotSelected)
+            DataType.PACKAGE_USER -> states.copy(userState = if (selected) DataState.Selected else DataState.NotSelected)
+            DataType.PACKAGE_USER_DE -> states.copy(userDeState = if (selected) DataState.Selected else DataState.NotSelected)
+            DataType.PACKAGE_DATA -> states.copy(dataState = if (selected) DataState.Selected else DataState.NotSelected)
+            DataType.PACKAGE_OBB -> states.copy(obbState = if (selected) DataState.Selected else DataState.NotSelected)
+            DataType.PACKAGE_MEDIA -> states.copy(mediaState = if (selected) DataState.Selected else DataState.NotSelected)
+            else -> states
+        }
+
+        fun DataType.getDisplayStats(displayStats: PackageDataStats?): Long? = if (displayStats == null) null else
+            when (this) {
+                DataType.PACKAGE_APK -> displayStats.apkBytes
+                DataType.PACKAGE_USER -> displayStats.userBytes
+                DataType.PACKAGE_USER_DE -> displayStats.userDeBytes
+                DataType.PACKAGE_DATA -> displayStats.dataBytes
+                DataType.PACKAGE_OBB -> displayStats.obbBytes
+                DataType.PACKAGE_MEDIA -> displayStats.mediaBytes
+                else -> null
+            }
+    }
+}
 
 @Serializable
 data class PackageStorageStats(
@@ -123,6 +159,25 @@ data class PackageEntity(
     val mediaSelected: Boolean
         get() = dataStates.mediaState == DataState.Selected
 
+    companion object {
+        const val FLAG_NONE = 0
+        const val FLAG_APK = 1     // 000001
+        const val FLAG_DATA = 62   // 111110
+        const val FLAG_ALL = 63    // 111111
+    }
+
+    val selectionFlag: Int
+        get() {
+            var flag = 0
+            if (apkSelected) flag = flag or 1
+            if (userSelected) flag = flag or 2
+            if (userDeSelected) flag = flag or 4
+            if (dataSelected) flag = flag or 8
+            if (obbSelected) flag = flag or 16
+            if (mediaSelected) flag = flag or 32
+            return flag
+        }
+
     val dataSelectedCount: Int
         get() = run {
             var count = 0
@@ -158,3 +213,27 @@ data class PackageEntity(
     val archivesRelativeDir: String
         get() = "${packageName}/user_${userId}${if (preserveId == 0L) "" else "@$preserveId"}"
 }
+
+
+fun PackageEntity.asExternalModel() = App(
+    id = id,
+    packageName = packageName,
+    label = packageInfo.label,
+    preserveId = preserveId,
+    isSystemApp = isSystemApp,
+    selectionFlag = selectionFlag,
+    selected = extraInfo.activated
+)
+
+// Part update entity
+data class PackageDataStatesEntity(
+    var id: Long,
+    @Embedded(prefix = "dataStates_") var dataStates: PackageDataStates,
+)
+
+// Part update entity
+data class PackageUpdateEntity(
+    var id: Long,
+    @Embedded(prefix = "extraInfo_") var extraInfo: PackageExtraInfo,
+    @Embedded(prefix = "storageStats_") var storageStats: PackageStorageStats,
+)

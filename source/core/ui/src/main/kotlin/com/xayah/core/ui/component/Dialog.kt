@@ -16,6 +16,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -107,6 +108,94 @@ class DialogState {
             }
         }
     }
+
+    fun open(
+        title: String,
+        icon: ImageVector? = null,
+        confirmText: @Composable () -> String,
+        dismissText: @Composable () -> String,
+        onConfirm: () -> Unit,
+        block: @Composable () -> Unit,
+    ) {
+        content = {
+            AlertDialog(
+                onDismissRequest = {
+                    dismiss()
+                },
+                confirmButton = {
+                    TextButton(text = confirmText(), onClick = {
+                        onConfirm()
+                        dismiss()
+                    })
+                },
+                dismissButton = {
+                    TextButton(text = dismissText(), onClick = {
+                        dismiss()
+                    })
+                },
+                title = { Text(text = title) },
+                icon = icon?.let { { Icon(imageVector = icon, contentDescription = null) } },
+                text = {
+                    block()
+                },
+            )
+        }
+    }
+
+    fun open(
+        title: String,
+        defValue: String,
+        singleLine: Boolean,
+        label: String?,
+        desc: String?,
+        icon: ImageVector?,
+        confirmText: @Composable () -> String,
+        dismissText: @Composable () -> String,
+        onConfirm: (String) -> Unit,
+    ) {
+        content = {
+            var content by rememberSaveable { mutableStateOf(defValue) }
+
+            AlertDialog(
+                onDismissRequest = {
+                    dismiss()
+                },
+                confirmButton = {
+                    TextButton(text = confirmText(), onClick = {
+                        onConfirm(content)
+                        dismiss()
+                    })
+                },
+                dismissButton = {
+                    TextButton(text = dismissText(), onClick = {
+                        dismiss()
+                    })
+                },
+                title = { Text(text = title) },
+                icon = icon?.let { { Icon(imageVector = icon, contentDescription = null) } },
+                text = {
+                    OutlinedTextField(
+                        modifier = Modifier.paddingTop(SizeTokens.Level8),
+                        value = content,
+                        singleLine = singleLine,
+                        onValueChange = {
+                            content = it
+                        },
+                        label = if (label == null) {
+                            null
+                        } else {
+                            { Text(text = label) }
+                        },
+                        supportingText = if (desc == null) {
+                            null
+                        } else {
+                            { Text(text = desc) }
+                        },
+                    )
+                },
+            )
+        }
+    }
 }
 
 suspend fun DialogState.confirm(title: String, text: String) = open(
@@ -115,6 +204,15 @@ suspend fun DialogState.confirm(title: String, text: String) = open(
     icon = null,
     block = { _ -> Text(text = text) }
 ).first.isConfirm
+
+fun DialogState.confirm(title: String, text: String, onConfirm: () -> Unit) = open(
+    title = title,
+    icon = null,
+    confirmText = { stringResource(id = R.string.confirm) },
+    dismissText = { stringResource(id = R.string.cancel) },
+    onConfirm = onConfirm,
+    block = { Text(text = text) }
+)
 
 @Composable
 fun RadioItem(enabled: Boolean = true, selected: Boolean, title: String, desc: String?, onClick: () -> Unit) {
@@ -234,4 +332,23 @@ suspend fun DialogState.edit(
             )
         }
     }
+)
+
+fun DialogState.edit(
+    title: String,
+    defValue: String = "",
+    singleLine: Boolean = true,
+    label: String? = null,
+    desc: String? = null,
+    onConfirm: (String) -> Unit
+) = open(
+    title = title,
+    defValue = defValue,
+    singleLine = singleLine,
+    label = label,
+    desc = desc,
+    icon = null,
+    confirmText = { stringResource(id = R.string.confirm) },
+    dismissText = { stringResource(id = R.string.cancel) },
+    onConfirm = onConfirm,
 )

@@ -1,5 +1,6 @@
 package com.xayah.core.model
 
+import com.google.gson.annotations.SerializedName
 import com.xayah.core.model.database.CloudEntity
 
 const val DefaultPreserveId = 0L
@@ -37,6 +38,12 @@ data class ContributorItem(
     var link: String,
 )
 
+data class TranslatorItem(
+    val email: String,
+    @SerializedName("full_name") var fullName: String,
+    @SerializedName("change_count") var changeCount: String,
+)
+
 /**
  * Action value(Int):
  * 0: Replace
@@ -47,4 +54,9 @@ data class TranslatorRevisionItem(
     var avatar: String,
     var link: String,
     var actions: Map<String, Int>,
+)
+
+data class UserInfo(
+    var id: Int,
+    var name: String,
 )
